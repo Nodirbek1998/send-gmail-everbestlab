@@ -1,60 +1,57 @@
+import { response } from 'express';
 import nodemailer from 'nodemailer';
-import multer from 'multer';
+import {google} from 'googleapis';
 
+const CLIENT_ID = '42677946740-8vqn120tk97561l8ajv9ilkgkab7jcuh.apps.googleusercontent.com';
+const CLIENT_SECRET = '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';
+const REDIRECT_URI = 'https://developers.google.com/oauthplayground';   
+const REFRESH_TOKEN = '1//041tNiXq-aiGPCgYIARAAGAQSNwF-L9Ir24-tPCt51kEhmt70iFVl6InxaOLapn5hfpTBrAw-Ua-5f6VqwREHstcFo4SEZE8a1g0';
 
-let Storage=multer.diskStorage({
-    destination: function(req,file,callback){
-        callback(null,'./upload')
-    },
-    filename:function(req,file,callback){
-        callback(null,file.fieldname + "_" + Date.now() + "_" + file.originalname )
-    }
-});
+const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+oAuth2Client.setCredentials({refresh_token: REFRESH_TOKEN});
 
-let upload=multer({
-    storage:Storage
-}).array('file');
+async function sendMail(user) {
+    try{
+        console.log(user + "------------------------------");
+        const accessToken = await oAuth2Client.getAccessToken()
 
- let mailTransporter = nodemailer.createTransport({
-    service: "gmail",
-    auth:{
-        user: "nodirbekmamadaliyev1998@gmail.com",
-        pass: "Nodirbek1972@"
-    }
-})
-
-export const sendMessageService = (req, res) => {
-
-    upload(req,res,function(err){
-        if(err){
-            console.log(err)
-            res.end("Something went wrong")
-        }
-        else{
-            let details = {
-                from: "nodirbekdeveloper2018@gmail.com",
-                to: req.body.to,
-                subject: req.body.subject,
-                text: req.body.text,
-                attachments:[
-                    {
-                        path:req.files[0].path
-                    },
-                    {
-                        path:req.files[1].path
-                    }
-                ]
+        const mailTransporter = nodemailer.createTransport({
+            service: "gmail",
+            auth:{
+                type: 'OAuth2',
+                user: "llceverbestlab@gmail.com",
+                clientId: CLIENT_ID,
+                clientSecret: CLIENT_SECRET,
+                refreshToken: REFRESH_TOKEN,
+                accessToken: accessToken
             }
-            console.log(details);
-            mailTransporter.sendMail(details, (err) => {
-                if(err){
-                    console.log("if has an error", err);
-                    res.send("Yuborilmadi");
-                }else{
-                    console.log("email has send !");
-                    res.send("Yuborildi");
-                }
-            })
+        })
+
+        const details = {
+            from: "llceverbestlab@gmail.com",
+            to: 'nodirbekdeveloper2018@gmail.com',
+            subject: "Name: " + user.yourName + "\n Email: " + user.email,
+            text: user.text
         }
-    })
+        const result = await mailTransporter.sendMail(details)
+        console.log(result);
+    } catch(error){
+        return error;
+    }
+}
+ 
+
+export const sendMessageService = (user, res) => {
+
+    sendMail(user.body)
+        .then((result) => {
+            console.log('Email sent...', result)
+            res.send("Yuborildi");
+        })
+        .catch((error) => {
+            res.send("Yuborilmadi");
+            console.log(error.message);
+        });
+    
+    
 }
