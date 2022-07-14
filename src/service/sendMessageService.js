@@ -1,6 +1,4 @@
-import { response } from 'express';
 import nodemailer from 'nodemailer';
-// import {google} from 'googleapis';
 import googleapis from "googleapis";
 const { google } = googleapis;
 
